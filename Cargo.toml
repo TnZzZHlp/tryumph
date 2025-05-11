@@ -1,5 +1,7 @@
 [package]
+description = "A flexible retry library for operations that may fail, with customizable delay strategies for both synchronous and asynchronous code"
 edition = "2024"
+license = "MIT OR Apache-2.0"
 name = "tryumph"
 repository = "https://github.com/tnzzzhlp/tryumph"
 version = "0.1.0"
