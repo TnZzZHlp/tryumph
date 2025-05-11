@@ -11,13 +11,13 @@ A simple, flexible retry library for Rust that handles operations that may fail.
 
 ## Features
 
--   Synchronous retries through the `sync` module
--   Asynchronous retries through the `unsync` module (requires the `unsync` feature)
--   Various retry delay strategies:
-    -   Fixed interval
-    -   Exponential backoff
-    -   Immediate (no delay)
-    -   Random range (requires the `random` feature)
+- Synchronous retries through the `sync` module
+- Asynchronous retries through the `unsync` module (requires the `unsync` feature)
+- Various retry delay strategies:
+  - Fixed interval
+  - Exponential backoff
+  - Immediate (no delay)
+  - Random range (requires the `random` feature)
 
 ## Installation
 
@@ -133,15 +133,15 @@ let result_nodelay = retry(NoDelay.take(3), || {
 
 ## Feature Flags
 
--   `unsync`: Enables asynchronous retry functionality (depends on tokio)
--   `random`: Enables randomized delay functionality (depends on rand)
+- `unsync`: Enables asynchronous retry functionality (depends on tokio)
+- `random`: Enables randomized delay functionality (depends on rand)
 
 ## License
 
 Licensed under either of:
 
--   Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
--   MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>)
+- MIT license ([LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
 
 at your option.
 
@@ -151,4 +151,4 @@ Unless you explicitly state otherwise, any contribution intentionally submitted 
 
 ## Acknowledgments
 
--   [retry](https://github.com/jimmycuadra/retry)
+- [retry](https://github.com/jimmycuadra/retry)
