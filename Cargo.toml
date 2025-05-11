@@ -1,0 +1,14 @@
+[package]
+edition = "2024"
+name = "tryumph"
+repository = "https://github.com/tnzzzhlp/tryumph"
+version = "0.1.0"
+
+[features]
+default = []
+random = ["rand"]
+unsync = ["tokio"]
+
+[dependencies]
+rand = {version = "0.9.1", optional = true}
+tokio = {version = "1.45.0", features = ["macros", "time", "rt-multi-thread"], optional = true}
