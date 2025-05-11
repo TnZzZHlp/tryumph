@@ -12,6 +12,8 @@ jobs:
         steps:
             - uses: actions/checkout@v4
               with:
+                  fetch-depth: 0
+                  ref: main
                   token: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Install Rust
@@ -33,7 +35,7 @@ jobs:
                   git config --global user.email "actions@github.com"
                   git add Cargo.toml
                   git commit -m "Update version to ${{ steps.get_version.outputs.VERSION }} [skip ci]"
-                  git push
+                  git push origin main
 
             - name: Run tests
               run: cargo test --all-features
