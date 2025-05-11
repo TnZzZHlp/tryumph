@@ -23,14 +23,7 @@ jobs:
             matrix:
                 os: [ubuntu-latest, macos-latest, windows-latest]
                 rust: [stable]
-                features:
-                    [
-                        "",
-                        "--features random",
-                        "--features unsync",
-                        "--features random,unsync",
-                        "--all-features",
-                    ]
+                features: ["", "--features random", "--all-features"]
 
         steps:
             - uses: actions/checkout@v4
