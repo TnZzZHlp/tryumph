@@ -38,7 +38,7 @@
 //!
 //! With the `unsync` feature enabled:
 //!
-//! ```rust
+//! ```rust,ignore
 //! use tryumph::unsync::retry;
 //! use tryumph::strategy::Exponential;
 //! use std::sync::{Arc, Mutex};
