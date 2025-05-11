@@ -12,7 +12,7 @@ A simple, flexible retry library for Rust that handles operations that may fail.
 ## Features
 
 - Synchronous retries through the `sync` module
-- Asynchronous retries through the `unsync` module (requires the `unsync` feature)
+- Asynchronous retries through the `unsync` module
 - Various retry delay strategies:
   - Fixed interval
   - Exponential backoff
@@ -28,18 +28,11 @@ Add this to your `Cargo.toml`:
 tryumph = "0.1.0"
 ```
 
-To enable asynchronous support:
-
-```toml
-[dependencies]
-tryumph = { version = "0.1.0", features = ["unsync"] }
-```
-
 To enable both async and random delay:
 
 ```toml
 [dependencies]
-tryumph = { version = "0.1.0", features = ["unsync", "random"] }
+tryumph = { version = "0.1.0", features = ["random"] }
 ```
 
 ## Usage
@@ -79,8 +72,6 @@ impl Response { fn is_success(&self) -> bool { self.is_success } }
 ```
 
 ### Asynchronous Example
-
-With the `unsync` feature enabled:
 
 ```rust
 use tryumph::unsync::retry;
@@ -133,7 +124,6 @@ let result_nodelay = retry(NoDelay.take(3), || {
 
 ## Feature Flags
 
-- `unsync`: Enables asynchronous retry functionality (depends on tokio)
 - `random`: Enables randomized delay functionality (depends on rand)
 
 ## License

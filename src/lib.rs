@@ -9,7 +9,7 @@
 //! ## Features
 //!
 //! - Synchronous retries through the `sync` module
-//! - Asynchronous retries (requires the `unsync` feature to be enabled)
+//! - Asynchronous retries through the `unsync` module
 //! - Customizable retry strategies (exponential backoff, fixed interval, no delay, etc.)
 //!
 //! ## Usage Examples
@@ -36,8 +36,6 @@
 //!
 //! ### Asynchronous Usage
 //!
-//! With the `unsync` feature enabled:
-//!
 //! ```rust
 //! use tryumph::unsync::retry;
 //! use tryumph::strategy::Exponential;
@@ -63,7 +61,6 @@
 //!
 //! ## Feature Flags
 //!
-//! - `unsync`: Enables asynchronous retry functionality (depends on tokio)
 //! - `random`: Enables randomized delay functionality (depends on rand)
 //!
 //! ## Acknowledgment to the following projects

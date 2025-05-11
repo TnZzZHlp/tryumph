@@ -20,6 +20,6 @@ pub mod nodelay;
 pub use nodelay::NoDelay;
 
 #[cfg(feature = "random")]
-mod random;
+pub mod random;
 #[cfg(feature = "random")]
 pub use random::{Range, jitter};
