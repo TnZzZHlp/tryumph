@@ -1,0 +1,60 @@
+name: Release
+
+on:
+    push:
+        tags:
+            - "v[0-9]+.*"
+
+jobs:
+    publish:
+        name: Publish
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+                  ref: main
+                  token: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Install Rust
+              uses: dtolnay/rust-toolchain@stable
+
+            - name: Extract version from tag
+              id: get_version
+              run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+            - name: Update Cargo.toml version
+              run: |
+                  TAG_VERSION=${{ steps.get_version.outputs.VERSION }}
+                  sed -i "s/^version = \".*\"/version = \"$TAG_VERSION\"/" Cargo.toml
+                  echo "Updated Cargo.toml version to $TAG_VERSION"
+
+            - name: Run tests
+              run: cargo test --all-features
+
+            - name: Commit and push version update
+              run: |
+                  git config --global user.name "GitHub Actions"
+                  git config --global user.email "actions@github.com"
+                  git add .
+                  git commit -m "Update version to ${{ steps.get_version.outputs.VERSION }} [skip ci]" || echo "No changes to commit"
+                  if [ -n "$(git status --porcelain)" ]; then
+                      git push origin main
+                  else
+                      echo "No changes to push"
+                  fi
+                  echo "Pushed version update to main branch"
+
+            - name: Verify changes
+              run: |
+                  CARGO_VERSION=$(grep -m1 'version = ' Cargo.toml | cut -d '"' -f2)
+                  echo "Cargo.toml version: $CARGO_VERSION"
+                  echo "Tag version: ${{ steps.get_version.outputs.VERSION }}"
+
+                  if [ "$CARGO_VERSION" != "${{ steps.get_version.outputs.VERSION }}" ]; then
+                    echo "Version mismatch! Aborting release."
+                    exit 1
+                  fi
+
+            - name: Publish to crates.io
+              run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
