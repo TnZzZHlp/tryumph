@@ -414,7 +414,7 @@ mod tests {
     #[tokio::test]
     async fn retry_with_callback_test() {
         let mut collection = vec![1, 2].into_iter();
-        let mut callback_called = false;
+        let callback_called = Arc::new(Mutex::new(false));
 
         let value = retry_with_callback(
             NoDelay.take(2),
@@ -429,18 +429,21 @@ mod tests {
                 }
             },
             |result| {
-                if let Err(e) = result {
-                    callback_called = true;
-                    assert_eq!(e, "not 2");
+                let callback_called_clone = callback_called.clone();
+                async move {
+                    if let Err(e) = result {
+                        *callback_called_clone.lock().unwrap() = true;
+                        assert_eq!(e, "not 2");
+                    }
+                    false // Continue retrying
                 }
-                std::future::ready(false) // Continue retrying
             },
         )
         .await
         .unwrap();
 
         assert_eq!(value, 2);
-        assert!(callback_called);
+        assert!(*callback_called.lock().unwrap());
     }
 
     #[tokio::test]
