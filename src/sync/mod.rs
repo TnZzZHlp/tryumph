@@ -97,10 +97,7 @@ where
 ///
 /// * `iterable` - An iterable that provides the `Duration` to wait between retries.
 /// * `operation` - The operation to execute, typically a closure that returns a value convertible to `Result<O, E>`.
-/// * `callback` - A closure invoked after each failed operation attempt. It receives the `Result<O, E>`
-///                of the current attempt as an argument.
-///                If the callback returns `true`, retries are stopped, and the current error is returned immediately.
-///                If the callback returns `false`, retrying continues (if attempts remain).
+/// * `callback` - A closure invoked after each failed operation attempt. It receives the `Result<O, E>` of the current attempt as an argument. If the callback returns `true`, retries are stopped, and the current error is returned immediately. If the callback returns `false`, retrying continues (if attempts remain).
 ///
 /// # Returns
 ///
