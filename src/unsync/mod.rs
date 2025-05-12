@@ -76,12 +76,12 @@ use tokio::time::sleep;
 ///     }).await;
 /// }
 /// ```
-pub async fn retry<I, Op, F, R, E, OR>(iterable: I, mut operation: Op) -> Result<R, E>
+pub async fn retry<I, OP, F, R, O, E>(iterable: I, mut operation: OP) -> Result<O, E>
 where
     I: IntoIterator<Item = Duration>,
-    Op: FnMut() -> F,
-    F: Future<Output = OR>,
-    OR: Into<Result<R, E>>,
+    OP: FnMut() -> F,
+    F: Future<Output = R>,
+    R: Into<Result<O, E>>,
 {
     let mut iter = iterable.into_iter();
 
@@ -92,6 +92,140 @@ where
             Ok(result) => return Ok(result),
             Err(err) => {
                 if let Some(duration) = iter.next() {
+                    sleep(duration).await;
+                } else {
+                    return Err(err); // No more retries left; returning the last error
+                }
+            }
+        }
+    }
+}
+
+/// Executes an asynchronous operation and retries it with a specified asynchronous callback and delay intervals if it fails.
+///
+/// **Stability: This API is unstable and may change in future versions.**
+///
+/// This function repeatedly executes the provided asynchronous operation until it succeeds,
+/// the asynchronous callback indicates to stop, or there are no more retry attempts remaining.
+/// Before each retry, it asynchronously waits for the duration provided by the next element
+/// from the iterable. If the operation fails, the asynchronous callback function is invoked
+/// with the `Result` of the current attempt.
+///
+/// # Parameters
+///
+/// * `iterable` - An iterable that provides the `Duration` to wait between retries.
+/// * `operation` - The operation to execute, typically a closure that returns a `Future`
+///   which resolves to a value convertible to `Result<O, E>`.
+/// * `callback` - An asynchronous closure invoked after each failed operation attempt.
+///   It receives the `Result<O, E>` of the current attempt as an argument and
+///   returns a `Future` that resolves to a boolean.
+///   If the callback's `Future` resolves to `true`, retries are stopped, and the current error is returned immediately.
+///   If it resolves to `false`, retrying continues (if attempts remain).
+///
+/// # Returns
+///
+/// Returns `Ok(O)` if the operation eventually succeeds.
+/// Returns the last encountered error `Err(E)` if all retries fail or if the callback indicates to stop.
+///
+/// # Examples
+///
+/// ```
+/// use std::time::Duration;
+/// use tryumph::unsync::retry_with_callback;
+/// use tryumph::strategy::Fixed;
+/// use std::sync::{Arc, Mutex}; // Add this for Arc<Mutex<T>>
+///
+/// # async fn make_api_request_flaky(attempt: u32) -> Result<&'static str, &'static str> {
+/// #     if attempt < 3 { Err("network error") } else { Ok("success data") }
+/// # }
+///
+/// async fn fetch_data_with_callback() -> Result<&'static str, &'static str> {
+///     // Use Arc<Mutex<u32>> to share and mutate the attempts counter safely
+///     let attempts = Arc::new(Mutex::new(0u32));
+///
+///     retry_with_callback(
+///         Fixed::from_millis(50).take(5), // Retry up to 5 times, with 50ms interval
+///         || { // Operation
+///             // Clone Arc for the operation closure
+///             let attempts_clone_op = Arc::clone(&attempts);
+///             async move {
+///                 let current_attempt = {
+///                     let mut attempts_guard = attempts_clone_op.lock().unwrap();
+///                     *attempts_guard += 1;
+///                     *attempts_guard // Get the current attempt count
+///                 };
+///                 println!("Operation: Attempt {}", current_attempt);
+///                 make_api_request_flaky(current_attempt).await
+///             }
+///         },
+///         |attempt_result| { // Asynchronous Callback
+///             // Clone Arc for the callback closure
+///             let attempts_clone_cb = Arc::clone(&attempts);
+///             async move {
+///                 let current_attempt_for_cb = {
+///                     // Lock to read the current attempt count
+///                     *attempts_clone_cb.lock().unwrap()
+///                 };
+///                 match attempt_result {
+///                     Ok(_) => {
+///                         // This arm is unlikely to be hit as callback is called on error.
+///                         println!("Callback: Operation succeeded on attempt {} (should not happen here).", current_attempt_for_cb);
+///                         false // Continue (though it already succeeded)
+///                     }
+///                     Err(e) => {
+///                         println!("Callback: Operation failed on attempt {} with '{}'.", current_attempt_for_cb, e);
+///                         if current_attempt_for_cb >= 3 && e == "network error" {
+///                             println!("Callback: Deciding to stop retrying after {} attempts.", current_attempt_for_cb);
+///                             true // Stop retrying
+///                         } else {
+///                             println!("Callback: Will retry.");
+///                             false // Continue retrying
+///                         }
+///                     }
+///                 }
+///             }
+///         },
+///     )
+///     .await
+/// }
+///
+/// #[tokio::main]
+/// async fn main() {
+///     match fetch_data_with_callback().await {
+///         Ok(data) => println!("Final result: Successfully retrieved data: {:?}", data),
+///         Err(e) => println!("Final result: Failed: {:?}", e),
+///     }
+/// }
+/// ```
+pub async fn retry_with_callback<I, OP, C, FC, F, R, O, E>(
+    iterable: I,
+    mut operation: OP,
+    mut callback: C,
+) -> Result<O, E>
+where
+    I: IntoIterator<Item = Duration>,
+    OP: FnMut() -> F,
+    C: FnMut(Result<O, E>) -> FC,
+    FC: Future<Output = bool>,
+    F: Future<Output = R>,
+    E: Clone,
+    R: Into<Result<O, E>>,
+{
+    let mut iter = iterable.into_iter();
+
+    loop {
+        // Invoke the factory to obtain a new Future for this attempt.
+        let future_to_await = operation();
+        match future_to_await.await.into() {
+            Ok(result) => return Ok(result),
+            Err(err) => {
+                if let Some(duration) = iter.next() {
+                    // Call the callback function with the error
+                    if callback(Err(err.clone())).await {
+                        // If the callback returns true, we stop retrying
+                        return Err(err);
+                    }
+
                     sleep(duration).await;
                 } else {
                     return Err(err); // No more retries left; returning the last error
@@ -275,6 +409,38 @@ mod tests {
         .unwrap();
 
         assert_eq!(value, 2);
+    }
+
+    #[tokio::test]
+    async fn retry_with_callback_test() {
+        let mut collection = vec![1, 2].into_iter();
+        let mut callback_called = false;
+
+        let value = retry_with_callback(
+            NoDelay.take(2),
+            || {
+                let next_val = collection.next();
+                async move {
+                    match next_val {
+                        Some(n) if n == 2 => Ok(n),
+                        Some(_) => Err("not 2"),
+                        None => Err("not 2"),
+                    }
+                }
+            },
+            |result| {
+                if let Err(e) = result {
+                    callback_called = true;
+                    assert_eq!(e, "not 2");
+                }
+                std::future::ready(false) // Continue retrying
+            },
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(value, 2);
+        assert!(callback_called);
     }
 
     #[tokio::test]
