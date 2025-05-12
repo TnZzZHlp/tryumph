@@ -114,7 +114,6 @@ where
 /// use tryumph::strategy::NoDelay;
 /// let mut collection = vec![1, 2].into_iter();
 /// let mut callback_called = false;
-
 /// let value = retry_with_callback(
 ///     NoDelay.take(2),
 ///     || match collection.next() {
@@ -131,7 +130,6 @@ where
 ///     },
 /// )
 /// .unwrap();
-
 /// assert_eq!(value, 2);
 /// assert_eq!(callback_called, true);
 /// ```
